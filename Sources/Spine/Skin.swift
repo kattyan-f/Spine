@@ -13,6 +13,7 @@ class Skin {
     var name: String { model.name }
     let model: SkinModel
     let atlases: [String : SKTextureAtlas]
+    let textures: [String : SKTexture]
     
     init(_ model: SkinModel, atlas folder: String?) {
         
@@ -31,12 +32,36 @@ class Skin {
         }
         
         self.atlases = atlases
+        self.textures = [:]
+    }
+    
+    init(_ model: SkinModel, _ path: String?) {
+        
+        self.model = model
+        var textures = [String : SKTexture]()
+        
+        for atlasName in model.atlasesNames {
+            
+            for slotName in model.slots {
+                var texturePath = atlasName
+                if let path = path {
+                    
+                    texturePath = "\(path)/\(atlasName)/\(slotName.name)"
+                }
+                
+                textures[slotName.name] = SKTexture(imageNamed: texturePath)
+            }
+        }
+        
+        self.atlases = [:]
+        self.textures = textures
     }
     
     init(_ model: SkinModel, _ atlases: [String : SKTextureAtlas]) {
         
         self.model = model
         self.atlases = atlases
+        self.textures = [:]
     }
     
     func attachment(_ model: AttachmentModel) -> Attachment? {
@@ -73,6 +98,12 @@ class Skin {
     }
     
     func texture(with name: String, from atlasName: String) -> SKTexture? {
+        
+        if textures.count > 0 {
+            if textures[name] != nil {
+                return textures[name]
+            }
+        }
         
         guard let atlas = atlases[atlasName],
               let textureName = atlas.textureNames.first(where: { $0 == name }) else {

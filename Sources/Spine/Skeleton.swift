@@ -65,6 +65,25 @@ public class Skeleton: SKNode {
     }
     
     /**
+     Creates a skeleton node with an `SpineModel` and *optional* atlas folder name.
+     
+     See more information about Spine:
+     [http://esotericsoftware.com/spine-basic-concepts](http://esotericsoftware.com/spine-basic-concepts)
+     
+     - parameter model: the skeleton model.
+     - parameter path: Path to folder containing images. *optional*
+     */
+    public convenience init(_ model: SpineModel, _ path: String? = nil) {
+
+        let skins = Self.createSkins(model, path)
+        let animations = Self.createAnimations(model)
+        self.init(skins: skins, animations: animations)
+        
+        self.createBones(model)
+        self.createSlots(model)
+    }
+    
+    /**
      Creates a skeleton node with an `SpineModel` and atlases dictionary.
 
      - parameter model: the skeleton model.
@@ -103,6 +122,39 @@ public class Skeleton: SKNode {
         let model = try JSONDecoder().decode(SpineModel.self, from: json)
         
         self.init(model, atlas: folder)
+        
+        try applyDefaultSkin()
+        
+        if let skin = skin {
+            
+            try apply(skin: skin)
+        }
+    }
+    
+    /**
+     Сreates a skeleton node based on the `json` file stored in the bundle application.
+     
+     The initializer may fail, so returning value *optional*
+     
+     See more information about Spine:
+     [http://esotericsoftware.com/spine-basic-concepts](http://esotericsoftware.com/spine-basic-concepts)
+     
+     - parameter name: Spine JSON file name.
+     - parameter path: Path to folder containing images. *optional*
+     - parameter skin: the name of the skin that you want to apply to 'Skeleton'. *optional*
+     
+     - throws: Throws a debuggable error.
+     */
+    public convenience init(json name: String, path: String? = nil, skin: String? = nil) throws {
+        
+        guard let url = Bundle.main.url(forResource: name, withExtension: "json") else {
+            throw SpineError.jsonFileLoadingFromBundleFailed("\(name).json")
+        }
+        
+        let json = try Data(contentsOf: url)
+        let model = try JSONDecoder().decode(SpineModel.self, from: json)
+        
+        self.init(model, path)
         
         try applyDefaultSkin()
         
@@ -197,6 +249,11 @@ extension Skeleton {
     static func createSkins(_ model: SpineModel, atlas folder: String?) -> [Skin] {
         
         model.skins.map{ Skin($0, atlas: folder) }
+    }
+    
+    static func createSkins(_ model: SpineModel, _ path: String?) -> [Skin] {
+        
+        model.skins.map{ Skin($0, path) }
     }
     
     static func createSkins(_ model: SpineModel, _ atlases: [String : SKTextureAtlas]) -> [Skin] {
